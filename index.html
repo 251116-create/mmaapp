@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>카카오맵 장소 검색 서비스</title>
+    <style>
+        /* 기본 레이아웃 설정 */
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body, html { width: 100%; height: 100%; font-family: 'Malgun Gothic', sans-serif; overflow: hidden; }
+
+        /* 화면 2분할 컨테이너 */
+        .main-wrapper { display: flex; width: 100%; height: 100vh; }
+
+        /* 왼쪽 사이드바 (검색 및 리스트) */
+        .sidebar {
+            width: 30%;
+            min-width: 300px;
+            height: 100%;
+            background: #ffffff;
+            display: flex;
+            flex-direction: column;
+            border-right: 1px solid #ddd;
+            z-index: 10;
+        }
+
+        .search-area { padding: 20px; background: #fee500; } /* 카카오 브랜드 컬러 */
+        .search-area h2 { font-size: 1.2rem; margin-bottom: 15px; }
+        .input-box { display: flex; gap: 5px; }
+        .input-box input { flex: 1; padding: 10px; border: 1px solid #ccc; border-radius: 4px; }
+        .input-box button { padding: 10px 15px; background: #333; color: white; border: none; border-radius: 4px; cursor: pointer; }
+
+        /* 검색 결과 리스트 */
+        #result-list { flex: 1; overflow-y: auto; list-style: none; }
+        .place-item { padding: 15px; border-bottom: 1px solid #eee; cursor: pointer; }
+        .place-item:hover { background: #f9f9f9; }
+        .place-item h4 { margin-bottom: 5px; color: #007bff; }
+        .place-item p { font-size: 0.85rem; color: #666; }
+
+        /* 오른쪽 지도 영역 */
+        .map-area { flex: 1; position: relative; }
+        #map { width: 100%; height: 100%; }
+    </style>
+</head>
+<body>
+
+<div class="main-wrapper">
+    <aside class="sidebar">
+        <div class="search-area">
+            <h2>📍 장소 검색하기</h2>
+            <div class="input-box">
+                <input type="text" id="keyword" placeholder="장소, 맛집 검색..." onkeypress="if(event.keyCode==13) searchPlaces()">
+                <button onclick="searchPlaces()">검색</button>
+            </div>
+        </div>
+        <ul id="result-list">
+            </ul>
+    </aside>
+
+    <main class="map-area">
+        <div id="map"></div>
+    </main>
+</div>
+
+<script type="text/javascript" src="//dapi.kakao.com/v2/maps/sdk.js?appkey=62f299f531462c017c117f8f64adc1e2&libraries=services"></script>
+
+<script>
+    // 1. 지도 초기화 및 옵션 설정
+    const container = document.getElementById('map'); 
+    const options = {
+        center: new kakao.maps.LatLng(37.66, 126.83), // 학교 위치 (위도, 경도)
+        level: 5 // 확대 레벨
+    };
+
+    const map = new kakao.maps.Map(container, options); // 지도 생성
+    const ps = new kakao.maps.services.Places(); // 장소 검색 객체
+    let markers = []; // 마커를 관리할 배열
+
+    // 2. 키워드 검색 함수
+    function searchPlaces() {
+        const keyword = document.getElementById('keyword').value;
+
+        if (!keyword.trim()) {
+            alert('검색어를 입력해주세요!');
+            return;
+        }
+
+        // 카카오 API 키워드 검색 요청
+        ps.keywordSearch(keyword, placesSearchCB);
+    }
+
+    // 3. 검색 결과 콜백 함수
+    function placesSearchCB(data, status) {
+        if (status === kakao.maps.services.Status.OK) {
+            displayPlaces(data); // 검색 성공 시 리스트/마커 표시
+        } else if (status === kakao.maps.services.Status.ZERO_RESULT) {
+            alert('검색 결과가 없습니다.');
+        } else {
+            alert('검색 중 오류가 발생했습니다.');
+        }
+    }
+
+    // 4. 검색 결과 출력 및 마커 표시 함수
+    function displayPlaces(places) {
+        const listEl = document.getElementById('result-list');
+        const bounds = new kakao.maps.LatLngBounds(); // 지도 범위를 재설정하기 위한 객체
+        
+        listEl.innerHTML = ''; // 이전 검색 결과 지우기
+        removeMarkers(); // 이전 마커 지우기
+
+        for (let i = 0; i < places.length; i++) {
+            const placePosition = new kakao.maps.LatLng(places[i].y, places[i].x);
+            const marker = addMarker(placePosition); // 마커 생성 및 지도 표시
+            const itemEl = createListItem(places[i]); // 리스트 아이템 생성
+
+            // 검색된 장소 위치를 기준으로 지도 범위 확장
+            bounds.extend(placePosition);
+
+            // 리스트 항목 클릭 시 해당 위치로 부드럽게 이동
+            itemEl.onclick = function() {
+                map.panTo(placePosition);
+            };
+
+            listEl.appendChild(itemEl);
+        }
+
+        // 검색된 장소들이 모두 보이도록 지도 중심/레벨 조정
+        map.setBounds(bounds);
+    }
+
+    // 마커 생성 및 배열 관리 함수
+    function addMarker(position) {
+        const marker = new kakao.maps.Marker({ position: position });
+        marker.setMap(map);
+        markers.push(marker);
+        return marker;
+    }
+
+    // 기존 마커 제거 함수
+    function removeMarkers() {
+        markers.forEach(m => m.setMap(null));
+        markers = [];
+    }
+
+    // 검색
