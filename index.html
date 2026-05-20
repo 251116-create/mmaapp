@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>카카오맵 장소 검색 서비스</title>
+    <title>카카오맵 데이트 코스 서비스</title>
     <style>
         /* ===== 기본 스타일 및 레이아웃 ===== */
         * {
@@ -35,7 +35,7 @@
         }
 
         .header {
-            padding: 24px 20px;
+            padding: 24px 20px 15px 20px;
             background: #fee500; /* 카카오 시그니처 옐로우 */
         }
 
@@ -47,50 +47,37 @@
             gap: 8px;
         }
 
-        /* 검색창 디자인 개선 */
-        .search-box {
-            padding: 20px;
+        /* ===== 카테고리 탭 스타일 ===== */
+        .tabs {
             display: flex;
-            gap: 10px;
-            background: #fff;
-            border-bottom: 1px solid #eee;
+            background: #fee500;
+            padding: 0 10px 10px 10px;
+            gap: 5px;
         }
 
-        .search-box input {
+        .tab-button {
             flex: 1;
-            padding: 12px 16px;
-            font-size: 14px;
-            border: 2px solid #f0f0f0;
-            border-radius: 12px;
-            outline: none;
+            padding: 10px;
+            border: none;
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.5);
+            color: #3c1e1e;
+            font-weight: bold;
+            cursor: pointer;
             transition: all 0.2s;
+            font-size: 13px;
         }
 
-        .search-box input:focus {
-            border-color: #fee500;
-            background: #fffdf0;
-        }
-
-        .search-box button {
-            padding: 0 20px;
+        .tab-button.active {
             background: #3c1e1e;
             color: #fff;
-            border: none;
-            border-radius: 12px;
-            cursor: pointer;
-            font-weight: 600;
-            transition: background 0.2s;
-        }
-
-        .search-box button:hover {
-            background: #000;
         }
 
         /* 결과 리스트 스타일 */
         .result-list {
             flex: 1;
             overflow-y: auto;
-            padding: 10px 20px;
+            padding: 15px 20px;
         }
 
         .result-item {
@@ -136,35 +123,101 @@
 
         /* ===== 커스텀 오버레이(이모지 마커) 스타일 ===== */
         .emoji-marker {
-            font-size: 30px;
+            font-size: 32px;
             cursor: pointer;
             text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+            transition: transform 0.1s;
+        }
+        .emoji-marker:hover {
+            transform: scale(1.15);
         }
 
-        /* 정보창(InfoWindow) 스타일 커스텀 */
-        .info-window-content {
-            padding: 15px;
-            min-width: 200px;
+        /* ===== 테마별 커스텀 말풍선 공통 스타일 ===== */
+        .custom-popup {
+            position: relative;
+            bottom: 50px; /* 마커 위로 올리기 조절 */
+            border-radius: 16px;
+            padding: 16px;
+            min-width: 240px;
+            box-shadow: 0 6px 20px rgba(0,0,0,0.15);
+            border: 2px solid #fff;
         }
 
-        .info-window-content h4 {
+        /* 말풍선 꼬리공통 */
+        .custom-popup::after {
+            content: '';
+            position: absolute;
+            bottom: -10px;
+            left: 50%;
+            transform: translateX(-50%);
+            border-width: 10px 10px 0;
+            border-style: solid;
+        }
+
+        /* 1. 음식점 테마 (접시 느낌: 따뜻한 베이지 & 세라믹 룩) */
+        .theme-restaurant {
+            background: #fffbf5;
+            border-color: #f4d0a3;
+        }
+        .theme-restaurant::after {
+            border-color: #fffbf5 transparent;
+        }
+
+        /* 2. 디저트/카페 테마 (케이크 느낌: 소프트 핑크 & 달콤한 룩) */
+        .theme-cafe {
+            background: #fff5f7;
+            border-color: #fbcad5;
+        }
+        .theme-cafe::after {
+            border-color: #fff5f7 transparent;
+        }
+
+        /* 3. 약국 테마 (약봉투 느낌: 깨끗한 라이트 블루/그레이 & 메디컬 룩) */
+        .theme-pharmacy {
+            background: #f4f9ff;
+            border-color: #b7daf8;
+        }
+        .theme-pharmacy::after {
+            border-color: #f4f9ff transparent;
+        }
+
+        /* 커스텀 말풍선 내부 콘텐츠 */
+        .popup-content h4 {
+            margin-right: 20px;
             margin-bottom: 8px;
-            font-size: 15px;
+            font-size: 16px;
+            font-weight: 700;
+            color: #222;
         }
 
-        .info-window-content p {
+        .popup-content p {
             font-size: 12px;
             margin-bottom: 4px;
             color: #555;
         }
 
-        .info-window-content a {
+        .popup-content a {
             display: inline-block;
             margin-top: 8px;
             font-size: 12px;
             color: #007bff;
             text-decoration: none;
             font-weight: bold;
+        }
+
+        /* 닫기 버튼 */
+        .popup-close {
+            position: absolute;
+            top: 12px;
+            right: 12px;
+            background: transparent;
+            border: none;
+            font-size: 14px;
+            cursor: pointer;
+            color: #999;
+        }
+        .popup-close:hover {
+            color: #333;
         }
     </style>
 </head>
@@ -173,15 +226,18 @@
 <div class="container">
     <div class="left-panel">
         <div class="header">
-            <h1>📍 맛집 어디있니?</h1>
+            <h1>📍 데이트 코스 추천</h1>
         </div>
-        <div class="search-box">
-            <input type="text" id="keyword" placeholder="장소, 맛집 검색 (예: 강남역 카페)">
-            <button id="searchBtn">검색</button>
+        
+        <div class="tabs">
+            <button class="tab-button active" onclick="switchCategory('FD6', this)">🍴 음식점</button>
+            <button class="tab-button" onclick="switchCategory('CE7', this)">☕ 카페</button>
+            <button class="tab-button" onclick="switchCategory('PM9', this)">🏥 약국</button>
         </div>
+
         <div class="result-list" id="resultList">
             <div style="text-align: center; color: #aaa; margin-top: 50px;">
-                궁금한 장소를 검색해 보세요!
+                주변 장소를 불러오는 중입니다...
             </div>
         </div>
     </div>
@@ -197,66 +253,83 @@
     // 전역 변수 설정
     let map;
     let placeSearch;
-    let markers = []; // 일반 마커 대신 커스텀 오버레이를 쓸 경우 관리용
-    let overlays = []; 
-    let infoWindow;
+    let markerOverlays = []; // 이모지 마커(CustomOverlay) 배열
+    let detailOverlay = null; // 현재 열려있는 장소 상세 정보창(CustomOverlay)
+    let currentCategory = 'FD6'; // 기본 선택 카테고리 (음식점)
 
     // SDK 로드 완료 후 실행
     kakao.maps.load(() => {
         const container = document.getElementById('map');
         const options = {
-            center: new kakao.maps.LatLng(37.566826, 126.9786567), // 서울시청 기본
+            center: new kakao.maps.LatLng(37.566826, 126.9786567), // 서울시청 중심 기준
             level: 3
         };
         map = new kakao.maps.Map(container, options);
-        placeSearch = new kakao.maps.services.Places();
-        infoWindow = new kakao.maps.InfoWindow({ zIndex: 1 });
+        placeSearch = new kakao.maps.services.Places(map); // 지도를 연동하여 지도 중심 기준 검색 실행
 
-        // 이벤트 연결
-        document.getElementById('searchBtn').addEventListener('click', searchKeyword);
-        document.getElementById('keyword').addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') searchKeyword();
-        });
+        // 지도 드래그나 확대/축소가 끝났을 때 주변 장소 재검색 이벤트 등록
+        kakao.maps.event.addListener(map, 'idle', searchByCategory);
+
+        // 초기 데이터 검색 실행
+        searchByCategory();
     });
 
-    // 키워드 검색 함수
-    function searchKeyword() {
-        const keyword = document.getElementById('keyword').value.trim();
-        if (!keyword) {
-            alert('검색어를 입력해 주세요!');
-            return;
-        }
+    // 탭 전환 함수
+    function switchCategory(categoryCode, element) {
+        currentCategory = categoryCode;
+        
+        // 탭 활성화 스타일 변경
+        const buttons = document.querySelectorAll('.tab-button');
+        buttons.forEach(btn => btn.classList.remove('active'));
+        element.classList.add('active');
 
-        // 장소 검색 서비스 호출
-        placeSearch.keywordSearch(keyword, (data, status) => {
+        // 상세 정보창이 켜져있다면 닫기
+        closeDetail();
+
+        // 기존 마커 제거 및 새로운 카테고리 검색
+        searchByCategory();
+    }
+
+    // 카테고리 기반 검색 요청 함수
+    function searchByCategory() {
+        if (!placeSearch) return;
+
+        // 카테고리 코드로 주변 장소 검색 (지도의 중심좌표 기준)
+        placeSearch.categorySearch(currentCategory, (data, status) => {
             if (status === kakao.maps.services.Status.OK) {
                 displayPlaces(data);
             } else if (status === kakao.maps.services.Status.ZERO_RESULT) {
-                alert('검색 결과가 없습니다.');
+                clearListAndMarkers();
+                document.getElementById('resultList').innerHTML = '<div style="text-align: center; color: #aaa; margin-top: 50px;">주변에 검색 결과가 없습니다.</div>';
             } else {
-                alert('검색 도중 오류가 발생했습니다.');
+                alert('데이터를 가져오는 중 오류가 발생했습니다.');
             }
-        });
+        }, { useMapBounds: true }); // 현재 지도 영역 내에서만 검색하도록 옵션 지정
     }
 
     // 결과 표시 함수
     function displayPlaces(places) {
         const listEl = document.getElementById('resultList');
-        const bounds = new kakao.maps.LatLngBounds();
         
         // 기존 마커 및 리스트 초기화
-        removeAllMarkers();
+        clearListAndMarkers();
         listEl.innerHTML = '';
 
         places.forEach((place, index) => {
             const position = new kakao.maps.LatLng(place.y, place.x);
             
-            // 1. 이모지 마커(CustomOverlay) 생성
-            const emojiMarker = createEmojiMarker(position, place);
-            emojiMarker.setMap(map);
-            overlays.push(emojiMarker);
+            // 1. 카테고리별 맞춤 이모지 선택
+            let emoji = '📍';
+            if (currentCategory === 'FD6') emoji = '🍴';
+            else if (currentCategory === 'CE7') emoji = '☕️';
+            else if (currentCategory === 'PM9') emoji = '🏥';
 
-            // 2. 검색 결과 리스트 아이템 추가
+            // 2. 이모지 마커(CustomOverlay) 생성
+            const emojiMarker = createEmojiMarker(position, place, emoji);
+            emojiMarker.setMap(map);
+            markerOverlays.push(emojiMarker);
+
+            // 3. 왼쪽 리스트 목록 아이템 생성
             const itemEl = document.createElement('div');
             itemEl.className = 'result-item';
             itemEl.innerHTML = `
@@ -264,33 +337,29 @@
                 <div class="address">${place.road_address_name || place.address_name}</div>
             `;
 
-            // 리스트 아이템 클릭 시 지도 이동 및 정보창
+            // 리스트 아이템 클릭 시 해당 위치로 지도 이동 및 커스텀 말풍선 표시
             itemEl.addEventListener('click', () => {
                 map.panTo(position);
                 showDetail(position, place);
             });
 
             listEl.appendChild(itemEl);
-            bounds.extend(position);
         });
-
-        // 모든 마커가 보이도록 지도 범위 조정
-        map.setBounds(bounds);
     }
 
     // 이모지 마커 생성 함수
-    function createEmojiMarker(position, place) {
+    function createEmojiMarker(position, place, emoji) {
         const content = document.createElement('div');
         content.className = 'emoji-marker';
-        content.innerHTML = '📍'; // 원하는 이모지로 변경 가능 (📌, 🍔, ☕ 등)
+        content.innerHTML = emoji;
 
         const overlay = new kakao.maps.CustomOverlay({
             position: position,
             content: content,
-            yAnchor: 1 // 마커 끝부분이 좌표에 오도록 설정
+            yAnchor: 1 
         });
 
-        // 이모지 클릭 시 정보창 띄우기
+        // 이모지 마커 클릭 시 커스텀 말풍선 표시
         content.addEventListener('click', () => {
             showDetail(position, place);
         });
@@ -298,26 +367,54 @@
         return overlay;
     }
 
-    // 정보창 표시 함수
+    // 맞춤형 커스텀 말풍선(CustomOverlay) 표시 함수
     function showDetail(position, place) {
-        const detailContent = `
-            <div class="info-window-content">
+        // 기존에 열려있는 말풍선이 있으면 제거
+        closeDetail();
+
+        // 카테고리에 따른 테마 클래스 분기
+        let themeClass = 'theme-restaurant';
+        if (currentCategory === 'FD6') themeClass = 'theme-restaurant'; // 접시 느낌
+        else if (currentCategory === 'CE7') themeClass = 'theme-cafe';       // 케이크 느낌
+        else if (currentCategory === 'PM9') themeClass = 'theme-pharmacy';   // 약봉투 느낌
+
+        // 말풍선 DOM 생성
+        const popupEl = document.createElement('div');
+        popupEl.className = `custom-popup ${themeClass}`;
+        
+        // 팝업 내부 구성 및 링크 추가
+        popupEl.innerHTML = `
+            <button class="popup-close" onclick="closeDetail()">✕</button>
+            <div class="popup-content">
                 <h4>${place.place_name}</h4>
                 <p>📞 ${place.phone || '번호 없음'}</p>
                 <p>🏠 ${place.road_address_name || place.address_name}</p>
-                <a href="${place.place_url}" target="_blank">카카오맵 상세 보기 🔗</a>
+                <a href="${place.place_url}" target="_blank">카카오맵에서 열기 🔗</a>
             </div>
         `;
-        infoWindow.setContent(detailContent);
-        infoWindow.setPosition(position);
-        infoWindow.open(map);
+
+        // 지도의 커스텀 오버레이 오브젝트 생성
+        detailOverlay = new kakao.maps.CustomOverlay({
+            position: position,
+            content: popupEl,
+            yAnchor: 1
+        });
+
+        detailOverlay.setMap(map);
     }
 
-    // 기존 마커 및 오버레이 삭제
-    function removeAllMarkers() {
-        overlays.forEach(o => o.setMap(null));
-        overlays = [];
-        infoWindow.close();
+    // 상세 말풍선 닫기 함수
+    function closeDetail() {
+        if (detailOverlay) {
+            detailOverlay.setMap(null);
+            detailOverlay = null;
+        }
+    }
+
+    // 기존 마커 데이터 초기화 함수
+    function clearListAndMarkers() {
+        markerOverlays.forEach(o => o.setMap(null));
+        markerOverlays = [];
     }
 </script>
 
