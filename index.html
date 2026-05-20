@@ -34,43 +34,39 @@
             z-index: 10;
         }
 
-        .header {
-            padding: 24px 20px 15px 20px;
-            background: #fee500; /* 카카오 시그니처 옐로우 */
-        }
-
-        .header h1 {
-            font-size: 20px;
-            color: #3c1e1e;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        /* ===== 카테고리 탭 스타일 ===== */
+        /* ===== 확실하게 분리된 상단 3개 탭 스타일 ===== */
         .tabs {
             display: flex;
-            background: #fee500;
-            padding: 0 10px 10px 10px;
-            gap: 5px;
+            height: 60px; /* 탭 높이 확보 */
+            background: #3c1e1e; /* 상단 탭 배경 바 */
+            border-bottom: 2px solid #3c1e1e;
         }
 
         .tab-button {
             flex: 1;
-            padding: 10px;
             border: none;
-            border-radius: 8px;
-            background: rgba(255, 255, 255, 0.5);
-            color: #3c1e1e;
-            font-weight: bold;
+            background: #3c1e1e;
+            color: #aaa;
+            font-size: 15px;
+            font-weight: 700;
             cursor: pointer;
-            transition: all 0.2s;
-            font-size: 13px;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 5px;
         }
 
-        .tab-button.active {
-            background: #3c1e1e;
+        /* 마우스를 올렸을 때 효과 */
+        .tab-button:hover {
             color: #fff;
+            background: #2b1515;
+        }
+
+        /* 활성화된 탭 스타일 (카카오 시그니처 옐로우로 강조) */
+        .tab-button.active {
+            background: #fee500;
+            color: #3c1e1e;
         }
 
         /* 결과 리스트 스타일 */
@@ -135,7 +131,7 @@
         /* ===== 테마별 커스텀 말풍선 공통 스타일 ===== */
         .custom-popup {
             position: relative;
-            bottom: 50px; /* 마커 위로 올리기 조절 */
+            bottom: 55px; /* 마커 위로 올리기 조절 */
             border-radius: 16px;
             padding: 16px;
             min-width: 240px;
@@ -143,7 +139,7 @@
             border: 2px solid #fff;
         }
 
-        /* 말풍선 꼬리공통 */
+        /* 말풍선 꼬리 공통 */
         .custom-popup::after {
             content: '';
             position: absolute;
@@ -163,7 +159,7 @@
             border-color: #fffbf5 transparent;
         }
 
-        /* 2. 디저트/카페 테마 (케이크 느낌: 소프트 핑크 & 달콤한 룩) */
+        /* 2. 카페 테마 (케이크 느낌: 소프트 핑크 & 달콤한 룩) */
         .theme-cafe {
             background: #fff5f7;
             border-color: #fbcad5;
@@ -225,10 +221,6 @@
 
 <div class="container">
     <div class="left-panel">
-        <div class="header">
-            <h1>📍 데이트 코스 추천</h1>
-        </div>
-        
         <div class="tabs">
             <button class="tab-button active" onclick="switchCategory('FD6', this)">🍴 음식점</button>
             <button class="tab-button" onclick="switchCategory('CE7', this)">☕ 카페</button>
@@ -237,7 +229,7 @@
 
         <div class="result-list" id="resultList">
             <div style="text-align: center; color: #aaa; margin-top: 50px;">
-                주변 장소를 불러오는 중입니다...
+                내 주변 장소를 불러오는 중입니다...
             </div>
         </div>
     </div>
@@ -318,8 +310,8 @@
         places.forEach((place, index) => {
             const position = new kakao.maps.LatLng(place.y, place.x);
             
-            // 1. 카테고리별 맞춤 이모지 선택
-            let emoji = '📍';
+            // 1. 카테고리별 맞춤 이모지 선택 (편의점 대신 요청 명세인 음식점 🍴 추가 반영)
+            let emoji = '🍴';
             if (currentCategory === 'FD6') emoji = '🍴';
             else if (currentCategory === 'CE7') emoji = '☕️';
             else if (currentCategory === 'PM9') emoji = '🏥';
